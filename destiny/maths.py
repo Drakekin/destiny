@@ -11,9 +11,15 @@ class Vec3:
         self.y = y
         self.z = z
 
+    def __hash__(self):
+        return (self.x, self.y, self.z).__hash__()
+
     def distance(self, other: "Vec3"):
         return math.sqrt(
             ((self.x - other.x) ** 2)
             + ((self.y - other.y) ** 2)
             + ((self.z - other.z) ** 2)
         )
+
+    def __str__(self):
+        return f"({round(self.x, 2)}, {round(self.y, 2)}, {round(self.z, 2)})"

@@ -1,6 +1,6 @@
 import math
 from random import Random
-from typing import List
+from typing import List, Tuple
 
 from destiny.cartography.planet import Planet
 from destiny.maths import Vec3
@@ -14,6 +14,7 @@ class Star:
     luminosity: float
     position: Vec3
     planets: List[Planet]
+    precomputed_neighbours: List[Tuple["Star", float]]
 
     def __init__(
         self,
@@ -35,6 +36,8 @@ class Star:
 
         self.planets = []
         self._generate_planets(rng)
+
+        self.precomputed_neighbours = []
 
     def surface_temperature(self, orbital_radius: float, bond_albedo: float = 0.3):
         boltzman_constant = 5.670373 * (10**-8)
@@ -232,6 +235,12 @@ class Star:
     @property
     def habitable(self):
         return any(p.habitable for p in self.planets)
+
+    def __hash__(self):
+        return (self.name, self.position).__hash__()
+
+    def __eq__(self, other: "Star"):
+        return self.__hash__() == other.__hash__()
 
     def __repr__(self):
         return f"<Star({self.name}, {self.spectral_type}{int(self.spectral_subtype)}) [{len(self.planets)} planet{'' if len(self.planets) == 0 else 's'}{', habitable' if self.habitable else ''}]>"

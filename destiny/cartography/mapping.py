@@ -1,5 +1,5 @@
 import json
-from typing import List
+from typing import List, Dict, Tuple
 
 from destiny.cartography.planet import Planet, LifeLevel
 from destiny.cartography.star import Star
@@ -34,6 +34,7 @@ def load_stellar_catalogue() -> List[Star]:
     catalogue_name = {d["i"]: d for d in catalogue_name_unsorted}
     catalogue_spectral = {d["i"]: d for d in catalogue_spectral_unsorted}
 
+    print("Loading stellar data")
     for data in catalogue_3d:
         star_id = data["i"]
         pos = Vec3(data["x"], data["y"], data["z"])
@@ -69,15 +70,34 @@ def load_stellar_catalogue() -> List[Star]:
         except ValueError:
             continue
 
+        print(f"{name}, {spectral_class}{spectral_subclass}, {pos}")
         star = Star(name, pos, spectral_class, spectral_subclass, colour, luminosity)
         stars.append(star)
+
+    habitable_stars = [s for s in stars if s.habitable]
+    print(f"Precomputing distances between {len(habitable_stars)} habitable stars")
+    star_distance_cache = {}
+    for star in habitable_stars:
+        star.precomputed_neighbours = compute_neighbours(star_distance_cache, habitable_stars, star)
 
     return stars
 
 
-if __name__ == "__main__":
-    from random import choice
+def compute_neighbours(cache: Dict[Tuple[Star, Star], float], stars: List[Star], star: Star):
+    neighbours = []
+    for other in stars:
+        if other == star:
+            continue
+        if (other, star) in cache:
+            neighbours.append((other, cache[(other, star)]))
+            continue
+        distance = star.position.distance(other.position)
+        cache[(star, other)] = distance
+        neighbours.append((other, distance))
+    return sorted(neighbours, key=lambda tuple_: tuple_[1])
 
+
+if __name__ == "__main__":
     starmap = load_stellar_catalogue()
     print(
         f"{len([s for s in starmap if any(p.life_level == LifeLevel.intelligent_life for p in s.planets)])} with intelligent life"
