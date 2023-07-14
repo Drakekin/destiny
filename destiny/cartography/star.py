@@ -15,7 +15,15 @@ class Star:
     position: Vec3
     planets: List[Planet]
 
-    def __init__(self, name: str, position: Vec3, spectral_type: str, spectral_subtype_str: str, colour: dict, luminosity: float):
+    def __init__(
+        self,
+        name: str,
+        position: Vec3,
+        spectral_type: str,
+        spectral_subtype_str: str,
+        colour: dict,
+        luminosity: float,
+    ):
         rng = Random(name)
 
         self.position = position
@@ -28,14 +36,14 @@ class Star:
         self.planets = []
         self._generate_planets(rng)
 
-    def surface_temperature(self, orbital_radius: float, bond_albedo: float =0.3):
-        boltzman_constant = (5.670373 * (10 ** -8))
-        orbit_metres = ((orbital_radius * (149 * (10 ** 9))) ** 2)
+    def surface_temperature(self, orbital_radius: float, bond_albedo: float = 0.3):
+        boltzman_constant = 5.670373 * (10**-8)
+        orbit_metres = (orbital_radius * (149 * (10**9))) ** 2
         denominator = 16 * math.pi * boltzman_constant * orbit_metres
-        luminosity_watts = (3.846 * (10 ** 26))
+        luminosity_watts = 3.846 * (10**26)
         received_power = self.luminosity * luminosity_watts * (1 - bond_albedo)
         temperature_fourth = received_power / denominator
-        temperature = math.pow(temperature_fourth, 1/4)
+        temperature = math.pow(temperature_fourth, 1 / 4)
         return int(temperature - 273)  # kelvin - 273 = celsius
 
     def _generate_planets(self, rng: Random):
@@ -48,43 +56,71 @@ class Star:
         uninhabitable = rocky - guaranteed_habitable
 
         if hot_jupiter:
-            radius = self.inner_habitable_zone / 3 * rng.random() + self.inner_habitable_zone / 10
+            radius = (
+                self.inner_habitable_zone / 3 * rng.random()
+                + self.inner_habitable_zone / 10
+            )
             self.planets.append(
                 self.generate_random_gas_giant(radius, rng, moons=False)
             )
             if uninhabitable:
                 uncertainty = self.inner_habitable_zone / 3
                 radius = uncertainty * rng.random() + radius
-                self.planets.append(self.generate_random_uninhabitable_planet(radius, rng))
+                self.planets.append(
+                    self.generate_random_uninhabitable_planet(radius, rng)
+                )
                 uninhabitable -= 1
 
-            habitable_radius = self.inner_habitable_zone + (
-                        self.outer_habitable_zone - self.inner_habitable_zone) * rng.random()
-            self.planets.append(self.generate_random_possibly_habitable_planet(habitable_radius, rng))
+            habitable_radius = (
+                self.inner_habitable_zone
+                + (self.outer_habitable_zone - self.inner_habitable_zone) * rng.random()
+            )
+            self.planets.append(
+                self.generate_random_possibly_habitable_planet(habitable_radius, rng)
+            )
 
             if uninhabitable:
-                last_radius = self.outer_habitable_zone + (self.frost_line - self.outer_habitable_zone) * rng.random()
-                self.planets.append(self.generate_random_uninhabitable_planet(last_radius, rng))
+                last_radius = (
+                    self.outer_habitable_zone
+                    + (self.frost_line - self.outer_habitable_zone) * rng.random()
+                )
+                self.planets.append(
+                    self.generate_random_uninhabitable_planet(last_radius, rng)
+                )
         elif guaranteed_habitable:
             if uninhabitable:
                 uncertainty = self.inner_habitable_zone / 3
                 radius = uncertainty * 2 * rng.random() + uncertainty
-                self.planets.append(self.generate_random_uninhabitable_planet(radius, rng))
+                self.planets.append(
+                    self.generate_random_uninhabitable_planet(radius, rng)
+                )
                 uninhabitable -= 1
 
-            habitable_radius = self.inner_habitable_zone + (self.outer_habitable_zone - self.inner_habitable_zone) * rng.random()
-            self.planets.append(self.generate_random_possibly_habitable_planet(habitable_radius, rng))
+            habitable_radius = (
+                self.inner_habitable_zone
+                + (self.outer_habitable_zone - self.inner_habitable_zone) * rng.random()
+            )
+            self.planets.append(
+                self.generate_random_possibly_habitable_planet(habitable_radius, rng)
+            )
 
             if uninhabitable:
-                last_radius = self.outer_habitable_zone + (self.frost_line - self.outer_habitable_zone) * rng.random()
-                self.planets.append(self.generate_random_uninhabitable_planet(last_radius, rng))
+                last_radius = (
+                    self.outer_habitable_zone
+                    + (self.frost_line - self.outer_habitable_zone) * rng.random()
+                )
+                self.planets.append(
+                    self.generate_random_uninhabitable_planet(last_radius, rng)
+                )
         else:
             min_distance = self.inner_habitable_zone / 3
             max_distance = self.frost_line / 3
             radius = self.inner_habitable_zone / 3
             for _ in range(uninhabitable):
                 radius += rng.uniform(min_distance, max_distance)
-                self.planets.append(self.generate_random_uninhabitable_planet(radius, rng))
+                self.planets.append(
+                    self.generate_random_uninhabitable_planet(radius, rng)
+                )
 
         radius = self.frost_line
         for _ in range(gaseous):
@@ -94,9 +130,17 @@ class Star:
         for planet in self.planets:
             planet.generate_life(rng)
 
-    def generate_random_gas_giant(self, radius: float, rng: Random, moons: bool = True) -> Planet:
-        planet = Planet(star=self, mass=rng.uniform(14, 400), day_length=rng.uniform(0.25, 50) * 24,
-                        orbital_radius=radius, solid=False, moons=rng.randint(0, 30) if moons else 0)
+    def generate_random_gas_giant(
+        self, radius: float, rng: Random, moons: bool = True
+    ) -> Planet:
+        planet = Planet(
+            star=self,
+            mass=rng.uniform(14, 400),
+            day_length=rng.uniform(0.25, 50) * 24,
+            orbital_radius=radius,
+            solid=False,
+            moons=rng.randint(0, 30) if moons else 0,
+        )
         lock_chance = 0.5 if radius < (0.5 * math.sqrt(self.mass)) else 0.99
         psuedo_locked = rng.random() > lock_chance
         if psuedo_locked:
@@ -104,16 +148,25 @@ class Star:
         return planet
 
     def generate_random_uninhabitable_planet(self, radius, rng) -> Planet:
-        planet = Planet(star=self, mass=rng.uniform(0.03, 1.5), day_length=rng.uniform(0.3, 10) * 24,
-                        orbital_radius=radius, solid=True, greenhouse_factor=rng.randint(0, 100),
-                        surface_water=rng.random(), moons=rng.randint(0, 3))
+        planet = Planet(
+            star=self,
+            mass=rng.uniform(0.03, 1.5),
+            day_length=rng.uniform(0.3, 10) * 24,
+            orbital_radius=radius,
+            solid=True,
+            greenhouse_factor=rng.randint(0, 100),
+            surface_water=rng.random(),
+            moons=rng.randint(0, 3),
+        )
         lock_chance = 0.5 if radius < (0.5 * math.sqrt(self.mass)) else 0.95
         psuedo_locked = rng.random() > lock_chance
         if psuedo_locked:
             planet.day_length_hours = planet.orbital_period * rng.uniform(0.3, 1.1)
         return planet
 
-    def generate_random_possibly_habitable_planet(self, radius: float, rng: Random) -> Planet:
+    def generate_random_possibly_habitable_planet(
+        self, radius: float, rng: Random
+    ) -> Planet:
         initial_surface_temperature = self.surface_temperature(radius)
         max_greenhouse_fudge_factor = int(max(24 - initial_surface_temperature, 0))
         min_greenhouse_fudge_factor = int(max(0 - initial_surface_temperature, 0))
@@ -123,7 +176,9 @@ class Star:
             day_length=rng.uniform(0.75, 2) * 24,
             orbital_radius=radius,
             solid=True,
-            greenhouse_factor=rng.randint(min_greenhouse_fudge_factor, max_greenhouse_fudge_factor),
+            greenhouse_factor=rng.randint(
+                min_greenhouse_fudge_factor, max_greenhouse_fudge_factor
+            ),
             surface_water=rng.uniform(0.5, 0.8),
             moons=1,
         )

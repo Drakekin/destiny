@@ -116,10 +116,10 @@ class InhabitedPlanet:
         for n, (original_settlement, pop) in enumerate(unhappy_pops):
             opinion = pop.opinion_hash
             for candidate in settlements_by_government[opinion]:
-            # for candidate in self.rng.sample(
-            #     settlements_by_government[opinion],
-            #     min(len(settlements_by_government[opinion]), 10),
-            # ):
+                # for candidate in self.rng.sample(
+                #     settlements_by_government[opinion],
+                #     min(len(settlements_by_government[opinion]), 10),
+                # ):
                 if candidate.government.suitable_for(pop):
                     candidate.pops.append(pop)
                     moved += 1

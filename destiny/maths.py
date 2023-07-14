@@ -12,4 +12,8 @@ class Vec3:
         self.z = z
 
     def distance(self, other: "Vec3"):
-        return math.sqrt(((self.x - other.x) ** 2) + ((self.y - other.y) ** 2) + ((self.z - other.z) ** 2))
+        return math.sqrt(
+            ((self.x - other.x) ** 2)
+            + ((self.y - other.y) ** 2)
+            + ((self.z - other.z) ** 2)
+        )

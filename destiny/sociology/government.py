@@ -1,6 +1,7 @@
 import math
 from collections import defaultdict, Counter
-from typing import List, Optional, TYPE_CHECKING
+from random import Random
+from typing import List, Optional, TYPE_CHECKING, Type, Union
 
 from destiny.sociology.constants import POP_TARGET_SIZE
 
@@ -15,6 +16,7 @@ class Government:
     pacifist_militaristic: float
     secular_religious: float
     traditionalist_technological: float
+    name: str
 
     def __init__(self, settlement: "Settlement"):
         pass
@@ -37,6 +39,44 @@ class Government:
             + (round(self.secular_religious) << 3)
             + (round(self.traditionalist_technological) << 4)
         )
+
+    @property
+    def philosophy(self):
+        names = {
+            0b00000: "Secular Gerontocratic",
+            0b00001: "Democratic Traditionalist",
+            0b00010: "Paternalist",
+            0b00011: "Democratic Reformist",
+            0b00100: "Militarist",
+            0b00101: "Democratic Militarist",
+            0b00110: "Hegemonic Reformist",
+            0b00111: "Democratic Interventionist",
+            0b01000: "Insular Theocratic",
+            0b01001: "Insular Religious Democratic",
+            0b01010: "Tolerant Theocratic",
+            0b01011: "Religious Democratic",
+            0b01100: "Hegemonic Theocratic",
+            0b01101: "Militaristic Religious Democratic",
+            0b01110: "Hegemonic Religious Reformist",
+            0b01111: "Reformist Religious Democratic",
+            0b10000: "Oligarchic",
+            0b10001: "Capitalist Democratic",
+            0b10010: "Meritocratic",
+            0b10011: "Scientific Democratic",
+            0b10100: "Hegemonic Oligarchic",
+            0b10101: "Interventionist Capitalist Democratic",
+            0b10110: "Hegemonic Meritocratic",
+            0b10111: "Interventionist Scientific Democratic",
+            0b11000: "Scientific Theocratic",
+            0b11001: "Scientific Religious Democratic",
+            0b11010: "Religious Capitalistic Theocratic",
+            0b11011: "Isolationist Religious Democratic",
+            0b11100: "Scientific Religious Hegemonic",
+            0b11101: "Interventionist Religious Capitalist Democratic",
+            0b11110: "Hegemonic Religious Meritocratic",
+            0b11111: "Interventionist Religious Democratic",
+        }
+        return names[self.opinion_hash]
 
     def suitable_for(self, pop: "Population") -> bool:
         boundary = pop.tolerance / 2
@@ -63,6 +103,7 @@ class Government:
 
 
 class Dictatorship(Government):
+    name = "dictatorship"
     dictator: "Population"
 
     def infer_opinion(self):
@@ -89,10 +130,15 @@ class Dictatorship(Government):
         if self.dictator.is_dead:
             self.choose_new_dictator(settlement)
             self.infer_opinion()
-        return None
+            print(
+                f"The dictator of {settlement.name} has died. A new {self.philosophy} dictator has taken control"
+            )
+        return is_population_going_to_overthrow_government(self, settlement)
 
 
 class HereditaryDictatorship(Dictatorship):
+    name = "hereditary dictatorship"
+
     def choose_new_dictator(self, settlement: "Settlement"):
         candidates = self.dictator.descendent_pops
         if not candidates:
@@ -120,6 +166,7 @@ def average_opinion(government: Government, pops: List["Population"]):
 
 
 class Autocracy(Government):
+    name = "autocracy"
     council: List["Population"]
 
     def infer_opinion(self):
@@ -173,11 +220,18 @@ class Autocracy(Government):
         self.infer_opinion()
 
     def govern(self, settlement: "Settlement", year: int) -> Optional["Government"]:
+        old_philosophy = self.philosophy
         self.elect_council_members(settlement)
-        return None
+        if old_philosophy != self.philosophy:
+            print(
+                f"The government of {settlement.name} has shifted away from {old_philosophy} towards {self.philosophy}"
+            )
+        return is_population_going_to_overthrow_government(self, settlement)
 
 
 class HereditaryAutocracy(Autocracy):
+    name = "hereditary autocracy"
+
     def elect_council_members(self, settlement: "Settlement"):
         council_size = self.council_size(settlement)
 
@@ -209,6 +263,7 @@ class HereditaryAutocracy(Autocracy):
 
 
 class RepresentativeDemocracy(Government):
+    name = "representative democracy"
     council: List["Population"]
     founding_year: int
 
@@ -223,9 +278,18 @@ class RepresentativeDemocracy(Government):
         if self.founding_year == -1:
             self.founding_year = year
         elif (self.founding_year - year) % self.term == 0:
+            old_philosophy = self.philosophy
             self.elect_council_members(settlement)
+            if old_philosophy != self.philosophy:
+                print(
+                    f"{settlement.name} has voted out its {old_philosophy} government and elected a new {self.philosophy} party"
+                )
+            else:
+                print(
+                    f"{settlement.name} has retained its {self.philosophy} government"
+                )
 
-        return None
+        return is_government_going_to_become_autocracy(self, settlement)
 
     def infer_opinions(self):
         councilors_by_opinion = defaultdict(list)
@@ -296,18 +360,27 @@ class RepresentativeDemocracy(Government):
 
 
 class RepresentativeCoalition(RepresentativeDemocracy):
+    name = "representative coalition"
+
     def infer_opinion(self):
         average_opinion(self, self.council)
 
 
 class DirectDemocracy(Government):
+    name = "direct democracy"
+
     def __init__(self, settlement: "Settlement"):
         super().__init__(settlement)
         self.infer_opinions(settlement)
 
     def govern(self, settlement: "Settlement", year: int) -> Optional["Government"]:
+        old_philosophy = self.philosophy
         self.infer_opinions(settlement)
-        return None
+        if self.philosophy != old_philosophy:
+            print(
+                f"{settlement.name}'s {self.name} has shifted from {old_philosophy} towards {self.philosophy}"
+            )
+        return is_government_going_to_become_autocracy(self, settlement)
 
     def infer_opinions(self, settlement: "Settlement"):
         population_by_opinion = defaultdict(list)
@@ -321,8 +394,142 @@ class DirectDemocracy(Government):
 
 
 class DirectConsensus(DirectDemocracy):
+    name = "direct consensus"
+
     def infer_opinion(self, settlement: "Settlement"):
         average_opinion(self, settlement.pops)
+
+
+def establish_new_government(
+    government_type: Type[Government],
+    settlement: "Settlement",
+    inner_circle: List["Population"],
+) -> Government:
+    government = government_type(settlement)
+    if issubclass(government_type, Autocracy):
+        if TYPE_CHECKING:
+            assert isinstance(government, Autocracy)
+        if len(inner_circle) >= len(government.council):
+            government.council = settlement.rng.sample(
+                inner_circle, len(government.council)
+            )
+        else:
+            government.council = inner_circle
+            government.elect_council_members(settlement)
+        government.infer_opinion()
+    elif issubclass(government_type, Dictatorship):
+        if TYPE_CHECKING:
+            assert isinstance(government, Dictatorship)
+        government.dictator = settlement.rng.choice(inner_circle)
+        government.infer_opinion()
+    return government
+
+
+def is_population_going_to_overthrow_government(
+    government: "Government",
+    settlement: "Settlement",
+) -> Optional["Government"]:
+    unhappy_pops = []
+    loyal_pops = []
+    rebel_pops = []
+    for pop in settlement.pops:
+        suitable_for = government.suitable_for(pop)
+        if not suitable_for and pop.political_engagement > 0.75:
+            unhappy_pops.append(pop)
+            if pop.pacifist_militaristic >= 0.75:
+                rebel_pops.append(pop)
+        elif suitable_for:
+            loyal_pops.append(pop)
+
+    if len(unhappy_pops) > (len(loyal_pops) * 5):
+        new_government_type = settlement.rng.choice(
+            [pop.preferred_government for pop in unhappy_pops]
+        )
+        new_government = establish_new_government(
+            new_government_type, settlement, unhappy_pops
+        )
+        print(
+            f"{settlement.name} have revolted against its {government.philosophy} {government.name} and formed a new {new_government.philosophy} {new_government.name}"
+        )
+        return new_government
+    if len(rebel_pops) >= len(loyal_pops) * 3:
+        new_government_type = settlement.rng.choice(
+            [pop.preferred_government for pop in rebel_pops]
+        )
+        new_government = establish_new_government(
+            new_government_type, settlement, rebel_pops
+        )
+        print(
+            f"{settlement.name} has violently overthrown its {government.philosophy} {government.name} and formed a new {new_government.philosophy} {new_government.name}"
+        )
+        return new_government
+
+    return None
+
+
+def is_government_going_to_become_autocracy(
+    government: Union[RepresentativeDemocracy, DirectDemocracy],
+    settlement: "Settlement",
+) -> Optional[Government]:
+    unhappy_pops = []
+    loyal_pops = []
+    rebel_pops = []
+    for pop in settlement.pops:
+        suitable_for = government.suitable_for(pop)
+        if not suitable_for and pop.political_engagement > 0.75:
+            unhappy_pops.append(pop)
+            if pop.pacifist_militaristic >= 0.75 and pop.autocratic_democratic < 0.25:
+                rebel_pops.append(pop)
+        elif suitable_for:
+            loyal_pops.append(pop)
+
+    if (
+        len(loyal_pops) > (len(unhappy_pops) * 2)
+        and government.autocratic_democratic < 0.25
+    ):
+        if isinstance(government, RepresentativeDemocracy):
+            new_government_type = settlement.rng.choice(
+                [pop.preferred_government for pop in government.council]
+            )
+        else:
+            new_government_type = settlement.rng.choice(
+                (
+                    Dictatorship,
+                    HereditaryDictatorship,
+                    Autocracy,
+                    HereditaryAutocracy,
+                )
+            )
+        new_government = establish_new_government(
+            new_government_type, settlement, loyal_pops
+        )
+        print(
+            f"The leading party in {settlement.name} has overthrown its {government.philosophy} {government.name} and formed a new {new_government.philosophy} {new_government.name}"
+        )
+        return new_government
+    if len(rebel_pops) > (len(loyal_pops) * 3):
+        new_government_type = settlement.rng.choice(
+            [pop.preferred_government for pop in rebel_pops]
+        )
+        new_government = establish_new_government(
+            new_government_type, settlement, unhappy_pops
+        )
+        print(
+            f"Violent autocrats in {settlement.name} have overthrown its {government.philosophy} {government.name} and formed a new {new_government.philosophy} {new_government.name}"
+        )
+        return new_government
+    if len(unhappy_pops) > (len(loyal_pops) * 5):
+        new_government_type = settlement.rng.choice(
+            [pop.preferred_government for pop in unhappy_pops]
+        )
+        new_government = establish_new_government(
+            new_government_type, settlement, unhappy_pops
+        )
+        print(
+            f"{settlement.name} has overthrown its {government.philosophy} {government.name} and formed a new {new_government.philosophy} {new_government.name}"
+        )
+        return new_government
+    return None
 
 
 GOVERNMENTS = (

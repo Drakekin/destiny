@@ -16,7 +16,7 @@ def generate_sol():
         Planet(sol, 317, 10, 5.2, False),
         Planet(sol, 95, 10.5, 9.5, False),
         Planet(sol, 14.5, 17.4, 19.1, False),
-        Planet(sol, 17, 16, 30, False)
+        Planet(sol, 17, 16, 30, False),
     ]
     return sol
 
@@ -39,7 +39,9 @@ def load_stellar_catalogue() -> List[Star]:
         pos = Vec3(data["x"], data["y"], data["z"])
         colour = data.get("K", {"r": 1, "g": 1, "b": 1})
 
-        maybe_names = [n[5:] for n in catalogue_name[star_id]["n"] if n.startswith("NAME ")]
+        maybe_names = [
+            n[5:] for n in catalogue_name[star_id]["n"] if n.startswith("NAME ")
+        ]
         if maybe_names:
             name = min(maybe_names, key=lambda n: len(n))
         else:
@@ -73,11 +75,18 @@ def load_stellar_catalogue() -> List[Star]:
     return stars
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from random import choice
+
     starmap = load_stellar_catalogue()
-    print(f"{len([s for s in starmap if any(p.life_level == LifeLevel.intelligent_life for p in s.planets)])} with intelligent life")
-    print(f"{len([s for s in starmap if any(p.life_level != LifeLevel.precursor and p.life_level != LifeLevel.none and p.life_level != LifeLevel.intelligent_life for p in s.planets)])} with life")
-    print(f"{len([s for s in starmap if any(p.life_level == LifeLevel.precursor for p in s.planets)])} with life precursors")
+    print(
+        f"{len([s for s in starmap if any(p.life_level == LifeLevel.intelligent_life for p in s.planets)])} with intelligent life"
+    )
+    print(
+        f"{len([s for s in starmap if any(p.life_level != LifeLevel.precursor and p.life_level != LifeLevel.none and p.life_level != LifeLevel.intelligent_life for p in s.planets)])} with life"
+    )
+    print(
+        f"{len([s for s in starmap if any(p.life_level == LifeLevel.precursor for p in s.planets)])} with life precursors"
+    )
     print(f"{len([s for s in starmap if s.habitable])} habitable")
     print(f"{len(starmap)} total")
