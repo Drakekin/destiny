@@ -284,10 +284,6 @@ class RepresentativeDemocracy(Government):
                 print(
                     f"{settlement.name} has voted out its {old_philosophy} government and elected a new {self.philosophy} party"
                 )
-            else:
-                print(
-                    f"{settlement.name} has retained its {self.philosophy} government"
-                )
 
         return is_government_going_to_become_autocracy(self, settlement)
 
