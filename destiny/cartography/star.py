@@ -39,6 +39,10 @@ class Star:
 
         self.precomputed_neighbours = []
 
+    @property
+    def habitable_planets(self):
+        return [p for p in self.planets if p.habitable]
+
     def surface_temperature(self, orbital_radius: float, bond_albedo: float = 0.3):
         boltzman_constant = 5.670373 * (10**-8)
         orbit_metres = (orbital_radius * (149 * (10**9))) ** 2
@@ -54,8 +58,18 @@ class Star:
         hot_jupiter = rng.randint(0, 1)
         rocky = num_planets // 2
         gaseous = num_planets - rocky - hot_jupiter
-        guaranteed_habitability_chance = 0.05 if self.spectral_type == "G" else 0.5
-        guaranteed_habitable = 1 if rng.random() > guaranteed_habitability_chance else 0
+        if self.spectral_type == "G":
+            guaranteed_habitability_chance = 0.5
+        elif self.spectral_type == "F":
+            guaranteed_habitability_chance = 0.05
+        elif self.spectral_type == "O":
+            guaranteed_habitability_chance = 0
+        elif self.spectral_type == "M" or self.spectral_type == "K":
+            guaranteed_habitability_chance = 0.01
+        else:
+            guaranteed_habitability_chance = 0.1
+
+        guaranteed_habitable = 1 if rng.random() < guaranteed_habitability_chance else 0
         uninhabitable = rocky - guaranteed_habitable
 
         if hot_jupiter:

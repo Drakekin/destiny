@@ -3,10 +3,10 @@ from collections import Counter
 from random import Random
 
 from destiny.cartography.planet import Planet
-from destiny.sociology.government import GOVERNMENTS
-from destiny.sociology.pop import Population
 from destiny.sociology.constants import POP_TARGET_SIZE
-from destiny.sociology.settlement import InhabitedPlanet, Settlement
+from destiny.sociology.inhabitedplanet import InhabitedPlanet
+from destiny.sociology.pop import Population
+from destiny.sociology.settlement import Settlement
 
 
 def generate_earth_pops(
@@ -15,7 +15,7 @@ def generate_earth_pops(
     with open("data/earth_pop.json") as earth_pop_text:
         earth_pop_json = json.load(earth_pop_text)
 
-    planet = InhabitedPlanet(rng, earth)
+    planet = InhabitedPlanet(rng, earth, "Earth")
     print("Loading earth data")
     for country in earth_pop_json:
         print(f"Loading {country['country']}")

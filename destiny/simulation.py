@@ -1,7 +1,7 @@
 from random import Random
 
 from destiny.cartography.mapping import load_stellar_catalogue
-from destiny.sociology.utils import generate_earth_pops
+from destiny.sociology.utils.loading import generate_earth_pops
 
 
 def simulate(years: int = 100):

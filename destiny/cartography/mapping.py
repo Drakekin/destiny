@@ -70,20 +70,27 @@ def load_stellar_catalogue() -> List[Star]:
         except ValueError:
             continue
 
-        print(f"{name}, {spectral_class}{spectral_subclass}, {pos}")
         star = Star(name, pos, spectral_class, spectral_subclass, colour, luminosity)
+        print(
+            f"{name}, {spectral_class}{spectral_subclass}{' (habitable' if star.habitable else ''}, {pos}"
+        )
         stars.append(star)
 
     habitable_stars = [s for s in stars if s.habitable]
     print(f"Precomputing distances between {len(habitable_stars)} habitable stars")
     star_distance_cache = {}
     for star in habitable_stars:
-        star.precomputed_neighbours = compute_neighbours(star_distance_cache, habitable_stars, star)
+        print(f"Calculating {star.name}")
+        star.precomputed_neighbours = compute_neighbours(
+            star_distance_cache, habitable_stars, star
+        )
 
     return stars
 
 
-def compute_neighbours(cache: Dict[Tuple[Star, Star], float], stars: List[Star], star: Star):
+def compute_neighbours(
+    cache: Dict[Tuple[Star, Star], float], stars: List[Star], star: Star
+):
     neighbours = []
     for other in stars:
         if other == star:

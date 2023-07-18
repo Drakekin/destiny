@@ -7,6 +7,8 @@ from destiny.maths import Vec3
 
 if TYPE_CHECKING:
     from destiny.cartography.star import Star
+    from destiny.sociology.inhabitedplanet import InhabitedPlanet
+    from destiny.sociology.starships import Starship
 
 
 class LifeType(Enum):
@@ -57,6 +59,8 @@ class Planet:
     position: Vec3
     native_life: Optional[LifeType]
     life_level: LifeLevel
+    inhabited: Optional["InhabitedPlanet"]
+    ships: List["Starship"]
 
     def __init__(
         self,
@@ -75,10 +79,12 @@ class Planet:
         self.orbital_radius = orbital_radius
         self.solid = solid
         self.surface_water = surface_water
-        self.greenhouse_factor = greenhouse_factor if not solid else 0
+        self.greenhouse_factor = greenhouse_factor if solid else 0
         self.moons = moons
         self.native_life = None
         self.life_level = LifeLevel.none
+        self.inhabited = None
+        self.ships = []
 
     def generate_life(self, rng: Random):
         options: List[Optional[LifeType]] = []
@@ -127,6 +133,7 @@ class Planet:
             days_per_year > 100
             and 0.75 < self.gravity < 1.25
             and 0 <= self.surface_temperature <= 25
+            and self.greenhouse_factor < 50
         )
 
     @property
