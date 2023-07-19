@@ -24,6 +24,8 @@ class InhabitedPlanet:
     name: str
     discoveries: List[ScienceNode]
 
+    is_earth: bool
+
     uuid: UUID
 
     def __init__(self, rng: Random, planet: Planet, name: str):
@@ -42,6 +44,7 @@ class InhabitedPlanet:
 
         self.science_surplus = 0
         self.manufacturing_surplus = 0
+        self.is_earth = False
 
     def __eq__(self, other):
         return self.uuid == other.uuid
@@ -68,18 +71,11 @@ class InhabitedPlanet:
             )
 
     def build_ships(self, year: int, capacity_needed: int):
-        techs = []
-        for node in self.discoveries:
-            for tech in node.provides:
-                if tech in techs:
-                    continue
-                techs.append(tech)
-
         capacity_purchased = 0
         while capacity_purchased < capacity_needed:
             ship_name = self.rng.choice(SHIP_NAMES)
             ship_template, cost = Starship.construct_from_available_technologies(
-                self.rng, self.science_level, techs, ship_name, year
+                self.rng, self.science_level, self.discoveries, ship_name, year
             )
             if self.manufacturing_surplus < cost:
                 return
@@ -90,7 +86,7 @@ class InhabitedPlanet:
             SHIP_NAMES.remove(ship_name)
             original, *numbers = ship_name.split("—")
             if numbers:
-                number_str, = numbers
+                (number_str,) = numbers
                 number = int(number_str) + 1
             else:
                 number = 2
@@ -101,6 +97,8 @@ class InhabitedPlanet:
         return sum([s.population for s in self.settlements])
 
     def process_year(self, year: int) -> List[Starship]:
+        print(f"Processing year {year} for {self.name}")
+
         unhappy_pops = []
         settlements_by_government = defaultdict(list)
         for settlement in self.settlements:
@@ -150,17 +148,18 @@ class InhabitedPlanet:
             )
 
         random_ships = sorted(self.planet.ships, key=lambda _: self.rng.random())
-        max_range = max(ship.range for ship in random_ships)
-        possible_destination_stars = []
-        for star, distance in self.planet.star.precomputed_neighbours:
-            if distance <= max_range:
-                possible_destination_stars.append((distance, star))
-            else:
-                break
 
         leaving_ships = []
 
         if random_ships and colonists:
+            max_range = max(ship.range for ship in random_ships)
+            possible_destination_stars = []
+            for star, distance in self.planet.star.precomputed_neighbours:
+                if distance <= max_range:
+                    possible_destination_stars.append((distance, star))
+                else:
+                    break
+
             colonisable_planets = []
             for distance, star in possible_destination_stars:
                 for planet in star.habitable_planets:
@@ -190,11 +189,13 @@ class InhabitedPlanet:
                     while colonists and len(cargo) < ship.capacity:
                         _, new_colonist = colonists.pop()
                         cargo.append(new_colonist)
+                        emigrated += 1
                     leaving_ships.append(ship)
-                    print(
-                        f"The {ship.name} is heading to {target_planet.star.name} with {len(cargo)} colonists"
-                    )
                     ship.travel_to(self, cargo, planet=target_planet)
+                    print(
+                        f"The {ship.name} is heading to {target_planet.star.name} with {len(cargo)} colonists on a journey taking {ship.objective_time_remaining} years"
+                    )
+
                 if colonists:
                     offworld_settlers += colonists
 
@@ -204,7 +205,7 @@ class InhabitedPlanet:
             settleable_planets = []
             settlers_for_planet = defaultdict(list)
             planet_for_settlers = defaultdict(list)
-            for distance, star in possible_destination_stars:
+            for star, distance in self.planet.star.precomputed_neighbours:
                 if distance > new_max_range:
                     break
                 for planet in star.habitable_planets:
@@ -245,22 +246,29 @@ class InhabitedPlanet:
                     original_settlement, settler = settlement_settler
                     offworld_settlers.remove(settlement_settler)
                     for candidate in planet_for_settlers[settlement_settler]:
+                        if candidate == target_inhabited_planet:
+                            continue
                         settlers_for_planet[candidate].remove(settlement_settler)
                     cargo.append(settler)
                     emigrated += 1
 
                 leaving_ships.append(ship)
+                ship.travel_to(self, cargo, inhabited=target_inhabited_planet)
                 print(
-                    f"The {ship.name} is heading to {target_inhabited_planet.name} with {len(cargo)} colonists"
+                    f"The {ship.name} is heading to {target_inhabited_planet.name} with {len(cargo)} colonists on a journey taking {ship.objective_time_remaining} years"
                 )
-                ship.travel_to(self, cargo, planet=target_inhabited_planet)
 
                 if settlers_for_planet[target_inhabited_planet]:
                     settleable_planets.append((distance, target_inhabited_planet))
 
-            for original_settlement, pop in offworld_settlers:
-                original_settlement.pops.append(pop)
-                stayed += 1
+            if self.is_earth:
+                for original_settlement, pop in offworld_settlers:
+                    original_settlement.pops.append(pop)
+                    stayed += 1
+            else:
+                # TODO: form multiple settlements if the number of remaining pops is big
+                self.settlements.append(
+                    Settlement.for_pops(self.rng, [pop for _, pop in offworld_settlers], "City McCityface"))
 
         self.planet.ships = random_ships
 

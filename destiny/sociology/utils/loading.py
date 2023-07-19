@@ -1,5 +1,3 @@
-import json
-from collections import Counter
 from random import Random
 
 from destiny.cartography.planet import Planet
@@ -12,21 +10,23 @@ from destiny.sociology.settlement import Settlement
 def generate_earth_pops(
     rng: Random, population_multiplier: float = 10.0 / 8, earth: Planet = None
 ) -> InhabitedPlanet:
-    with open("data/earth_pop.json") as earth_pop_text:
-        earth_pop_json = json.load(earth_pop_text)
+    earth_pop_countries = []
+    with open("data/worldpop.csv", encoding='utf-8-sig') as earth_pop_text:
+        for line in earth_pop_text:
+            country, pop_str = line.split(",")
+            earth_pop_countries.append((country, int(pop_str)))
 
     planet = InhabitedPlanet(rng, earth, "Earth")
     print("Loading earth data")
-    for country in earth_pop_json:
-        print(f"Loading {country['country']}")
+    for country, population in earth_pop_countries:
+        print(f"Loading {country}")
         pops = []
-        adjusted_population = country["population"] * population_multiplier
-        government_types = Counter()
+        adjusted_population = population * population_multiplier
         for _ in range(int(adjusted_population // POP_TARGET_SIZE)):
             population = Population(
                 rng,
                 POP_TARGET_SIZE,
-                [(country["country"], 100)],
+                [(country, 100)],
                 randomise_statistics=True,
             )
             population.children = [
@@ -37,12 +37,10 @@ def generate_earth_pops(
                 for _ in range(20)
             ]
             pops.append(population)
-            government_types[population.preferred_government] += 1
         if len(pops) == 0:
             continue
-        settlement = Settlement(
-            rng, country["country"], pops, government_types.most_common(1)[0][0]
-        )
+        settlement = Settlement.for_pops(rng, pops, country)
         planet.settlements.append(settlement)
 
+    planet.is_earth = True
     return planet

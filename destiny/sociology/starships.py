@@ -1,17 +1,19 @@
 import math
+from collections import Counter
 from random import Random
-from typing import Optional, TYPE_CHECKING, List, Tuple
+from typing import Optional, TYPE_CHECKING, List, Tuple, Type
 from uuid import UUID, uuid4
 
-from destiny.sociology.constants import SPEED_OF_LIGHT, SECONDS_PER_YEAR
+from destiny.sociology.constants import SPEED_OF_LIGHT, SECONDS_PER_YEAR, LIGHTYEAR_METRES
 from destiny.sociology.science import (
     Technology,
     SuperheavySpacecraft,
     Spacefolding,
-    Sublight,
+    Sublight, ScienceNode,
 )
+from destiny.sociology.settlement import Settlement
 from destiny.sociology.utils.life import process_births_and_deaths
-from destiny.sociology.utils.shipnames import SHIP_NAMES
+from destiny.sociology.utils.city_names import get_name
 
 if TYPE_CHECKING:
     from destiny.sociology.inhabitedplanet import InhabitedPlanet
@@ -27,14 +29,15 @@ class Starship:
 
     capacity: int
     science_level: int
-    technologies: List["Technology"]
+    discoveries: List["Technology"]
     name: str
     founded: int
     lifespan: int
     decommissioned: bool
 
+    origin: Optional["InhabitedPlanet"]
     destination: Optional["Planet"]
-    destination_settlement: Optional["InhabitedPlanet"]
+    destination_inhabited_planet: Optional["InhabitedPlanet"]
     subjective_time_remaining: Optional[int]
     objective_time_remaining: Optional[int]
     cargo: List["Population"]
@@ -52,7 +55,7 @@ class Starship:
         sublight_acceleration: float,
         sublight_range: float,
         science_level: int,
-        technologies: List["Technology"],
+        discoveries: List["ScienceNode"],
         ftl_speed: Optional[float] = None,
         ftl_range: Optional[float] = None,
     ):
@@ -68,10 +71,11 @@ class Starship:
         self.lifespan = lifespan
         self.decommissioned = False
         self.science_level = science_level
-        self.technologies = technologies
+        self.discoveries = discoveries
 
+        self.origin = None
         self.destination = None
-        self.destination_settlement = None
+        self.destination_inhabited_planet = None
         self.subjective_time_remaining = None
         self.objective_time_remaining = None
 
@@ -94,12 +98,13 @@ class Starship:
         inhabited: Optional["InhabitedPlanet"] = None,
         planet: Optional["Planet"] = None
     ):
+        self.origin = current_location
         if inhabited:
             self.destination = inhabited.planet
-            self.destination_settlement = inhabited
+            self.destination_inhabited_planet = inhabited
         else:
             self.destination = planet
-            self.destination_settlement = None
+            self.destination_inhabited_planet = None
         if len(cargo) > self.capacity:
             raise ValueError("Cannot carry that many people")
         self.cargo = cargo
@@ -128,43 +133,54 @@ class Starship:
 
         distance = start.star.position.distance(end.star.position)
         if self.ftl_range and self.ftl_range >= distance:
-            return round(distance / self.ftl_speed)
+            return math.ceil(distance / self.ftl_speed)
 
         if distance > self.sublight_range:
             return None
+
+        distance *= LIGHTYEAR_METRES
 
         seconds_to_destination = math.sqrt(
             ((distance / SPEED_OF_LIGHT) ** 2)
             + (4 * distance / self.sublight_acceleration)
         )
-        return round(seconds_to_destination / SECONDS_PER_YEAR)
+        return math.ceil(seconds_to_destination / SECONDS_PER_YEAR)
 
     def subjective_time_between(self, start: "Planet", end: "Planet") -> Optional[int]:
         # TODO: can you get close via wormholes?
 
         distance = start.star.position.distance(end.star.position)
         if self.ftl_range and self.ftl_range >= distance:
-            return round(distance / self.ftl_speed)
+            return math.ceil(distance / self.ftl_speed)
 
         if distance > self.sublight_range:
             return None
+
+        distance *= LIGHTYEAR_METRES
 
         seconds_to_destination = (
             SPEED_OF_LIGHT / self.sublight_acceleration
         ) * math.acosh(
             (self.sublight_acceleration * distance / (SPEED_OF_LIGHT**2) + 1)
         )
-        return round(seconds_to_destination / SECONDS_PER_YEAR)
+        return math.ceil(seconds_to_destination / SECONDS_PER_YEAR)
 
     @classmethod
     def construct_from_available_technologies(
         cls,
         rng: Random,
         science_level: int,
-        techs: List[Technology],
+        discoveries: List[ScienceNode],
         name: str,
         year: int,
     ) -> Tuple["Starship", int]:
+        techs = []
+        for node in discoveries:
+            for tech in node.provides:
+                if tech in techs:
+                    continue
+                techs.append(tech)
+
         superheavies: List[SuperheavySpacecraft] = [
             t for t in techs if isinstance(t, SuperheavySpacecraft)
         ]
@@ -195,10 +211,60 @@ class Starship:
             engine.acceleration,
             engine.maximum_range,
             science_level,
-            techs,
+            discoveries,
             ftl_speed,
             ftl_range,
         )
         cost = chassis.capacity * chassis.cost * ftl_cost_multiplier
 
         return ship, cost
+
+    def offload(self) -> Optional["InhabitedPlanet"]:
+        if self.destination_inhabited_planet is None and self.destination.inhabited:
+            self.destination_inhabited_planet = self.destination.inhabited
+        if self.destination_inhabited_planet:
+            self.offload_to_settlement()
+            return None
+        else:
+            return self.settle_planet()
+
+    def settle_planet(self) -> "InhabitedPlanet":
+        InhabitedPlanetConstructor: Type[InhabitedPlanet] = type(self.origin)
+
+        countries = Counter()
+        for pop in self.cargo:
+            for ancestry, amount in pop.ancestry:
+                countries[ancestry] += amount
+
+        origin_country = countries.most_common(1)[0][0]
+        name = get_name(origin_country, self.rng)
+
+        planet = InhabitedPlanetConstructor(
+            self.rng, self.destination, name
+        )
+        planet.science_level = self.science_level
+        planet.discoveries = list(self.discoveries)
+        settlement = Settlement.for_pops(self.rng, self.cargo, name)
+        planet.settlements.append(settlement)
+        planet.planet.ships.append(self)
+        self.reset()
+        return planet
+
+    def reset(self):
+        self.destination = None
+        self.destination_inhabited_planet = None
+        self.cargo = []
+
+    def offload_to_settlement(self):
+        remaining_pops = []
+        for pop in self.cargo:
+            for settlement in self.destination_inhabited_planet.settlements:
+                if settlement.government.suitable_for(pop):
+                    settlement.pops.append(pop)
+                    break
+            else:
+                remaining_pops.append(pop)
+        if remaining_pops:
+            self.destination_inhabited_planet.settlements.append(
+                Settlement.for_pops(self.rng, remaining_pops))
+        self.reset()

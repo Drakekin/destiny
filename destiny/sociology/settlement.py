@@ -1,10 +1,12 @@
+from collections import Counter
 from random import Random
-from typing import List, Type, Tuple
+from typing import List, Type, Tuple, Optional
 
 from destiny.sociology.government import Government
 from destiny.sociology.pop import Population
 from destiny.sociology.constants import POP_TARGET_SIZE
 from destiny.sociology.utils.life import process_births_and_deaths
+from destiny.sociology.utils.city_names import get_name
 
 
 class Settlement:
@@ -24,6 +26,21 @@ class Settlement:
         self.pops = pops
         self.government = government_type(self)
         self.name = name
+
+    @classmethod
+    def for_pops(cls, rng: Random, pops: List[Population], name: Optional[str] = None):
+        government_types = Counter()
+        countries = Counter()
+        for pop in pops:
+            government_types[pop.preferred_government] += 1
+            for ancestry, amount in pop.ancestry:
+                countries[ancestry] += amount
+
+        if name is None:
+            origin_country = countries.most_common(1)[0][0]
+            name = get_name(origin_country, rng)
+
+        return Settlement(rng, name, pops, government_types.most_common(1)[0][0])
 
     @property
     def population(self):
@@ -54,6 +71,11 @@ class Settlement:
                 pops_to_move.append(pop)
             else:
                 pops_to_stay.append(pop)
+
+        if not pops_to_stay:
+            remainer = self.rng.choice(pops_to_move)
+            pops_to_move.remove(remainer)
+            pops_to_stay.append(remainer)
 
         self.pops = pops_to_stay
         effort = len(self.pops) + (len(pops_to_move) // 2) - agricultural_requirement
