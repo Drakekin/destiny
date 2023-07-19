@@ -97,7 +97,7 @@ class InhabitedPlanet:
         return sum([s.population for s in self.settlements])
 
     def process_year(self, year: int) -> List[Starship]:
-        print(f"Processing year {year} for {self.name}")
+        print(f"Processing year {year+1} for {self.name} - Population: {self.population:,} in {sum(len(s.pops) for s in self.settlements)} pops")
 
         unhappy_pops = []
         settlements_by_government = defaultdict(list)
@@ -167,6 +167,7 @@ class InhabitedPlanet:
                         colonisable_planets.append((distance, planet))
 
             if colonisable_planets:
+                # TODO: Pick colonisation targets better
                 colonisable_planets = sorted(
                     colonisable_planets, key=lambda t: t[0], reverse=True
                 )
@@ -228,9 +229,15 @@ class InhabitedPlanet:
 
             while offworld_settlers and random_ships and settleable_planets:
                 settleable_planets = sorted(
-                    settleable_planets, key=lambda t: len(settlers_for_planet[t[1]])
+                    filter(lambda t: len(settlers_for_planet[t[1]]) > 0, settleable_planets), key=lambda t: len(settlers_for_planet[t[1]])
                 )
-                distance, target_inhabited_planet = settleable_planets.pop()
+                candidate_planets = settleable_planets[-3:]
+                if not candidate_planets:
+                    break
+                chosen_planet = self.rng.choice(candidate_planets)
+                candidate_planets.remove(chosen_planet)
+
+                distance, target_inhabited_planet = chosen_planet
                 settlers = settlers_for_planet[target_inhabited_planet]
 
                 ship: Optional[Starship] = None
@@ -258,7 +265,7 @@ class InhabitedPlanet:
                     f"The {ship.name} is heading to {target_inhabited_planet.name} with {len(cargo)} colonists on a journey taking {ship.objective_time_remaining} years"
                 )
 
-                if settlers_for_planet[target_inhabited_planet]:
+                if len(settlers_for_planet[target_inhabited_planet]) > 0:
                     settleable_planets.append((distance, target_inhabited_planet))
 
             if self.is_earth:
@@ -267,9 +274,11 @@ class InhabitedPlanet:
                     stayed += 1
             else:
                 # TODO: form multiple settlements if the number of remaining pops is big
-                self.settlements.append(
-                    Settlement.for_pops(self.rng, [pop for _, pop in offworld_settlers], "City McCityface"))
+                if offworld_settlers:
+                    self.settlements.append(
+                        Settlement.for_pops(self.rng, [pop for _, pop in offworld_settlers]))
 
+        # TODO: Leftover ships should try and head to the nearest big planet
         self.planet.ships = random_ships
 
         print(

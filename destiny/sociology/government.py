@@ -437,6 +437,9 @@ def is_population_going_to_overthrow_government(
         elif suitable_for:
             loyal_pops.append(pop)
 
+    if len(rebel_pops) == 0:
+        return None
+
     if len(unhappy_pops) > (len(loyal_pops) * 5):
         new_government_type = settlement.rng.choice(
             [pop.preferred_government for pop in unhappy_pops]
