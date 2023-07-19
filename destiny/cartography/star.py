@@ -1,12 +1,14 @@
 import math
 from random import Random
 from typing import List, Tuple
+from uuid import UUID, uuid4
 
 from destiny.cartography.planet import Planet
 from destiny.maths import Vec3
 
 
 class Star:
+    uuid: UUID
     name: str
     spectral_type: str
     spectral_subtype: float
@@ -26,6 +28,7 @@ class Star:
         luminosity: float,
     ):
         rng = Random(name)
+        self.uuid = uuid4()
 
         self.position = position
         self.name = name

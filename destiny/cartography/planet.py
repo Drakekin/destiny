@@ -2,6 +2,7 @@ import math
 from enum import Enum, auto
 from random import Random
 from typing import Optional, List, TYPE_CHECKING
+from uuid import UUID, uuid4
 
 from destiny.maths import Vec3
 
@@ -43,12 +44,13 @@ LIFE_LEVEL_NAMES = [
     "molluscs",
     "land animals",
     "complex life",
-    "intelligent life",
+    "tool-using life",
 ]
 
 
 class Planet:
     star: "Star"
+    uuid: UUID
     mass: float
     day_length_hours: float
     orbital_radius: float
@@ -73,6 +75,7 @@ class Planet:
         greenhouse_factor: int = 0,
         moons: int = 0,
     ):
+        self.uuid = uuid4()
         self.star = star
         self.mass = mass
         self.day_length_hours = day_length

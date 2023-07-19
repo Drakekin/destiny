@@ -1,6 +1,7 @@
 from collections import Counter
 from random import Random
 from typing import List, Type, Tuple, Optional
+from uuid import UUID, uuid4
 
 from destiny.sociology.government import Government
 from destiny.sociology.pop import Population
@@ -10,6 +11,7 @@ from destiny.sociology.utils.city_names import get_name
 
 
 class Settlement:
+    uuid: UUID
     rng: Random
     pops: List[Population]
     government: Government
@@ -22,6 +24,7 @@ class Settlement:
         pops: List[Population],
         government_type: Type[Government],
     ):
+        self.uuid = uuid4()
         self.rng = rng
         self.pops = pops
         self.government = government_type(self)
