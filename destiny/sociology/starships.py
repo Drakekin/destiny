@@ -93,11 +93,14 @@ class Starship:
     def travel_to(
         self,
         current_location: "InhabitedPlanet",
-        cargo: List["Population"],
+        cargo: Optional[List["Population"]] = None,
         *,
         inhabited: Optional["InhabitedPlanet"] = None,
         planet: Optional["Planet"] = None
     ):
+        if cargo is None:
+            cargo = []
+
         self.origin = current_location
         if inhabited:
             self.destination = inhabited.planet
@@ -244,6 +247,8 @@ class Starship:
         )
         planet.science_level = self.science_level
         planet.discoveries = list(self.discoveries)
+        for pop in self.cargo:
+            pop.happiness = 1
         settlement = Settlement.for_pops(self.rng, self.cargo, name)
         planet.settlements.append(settlement)
         planet.planet.ships.append(self)
@@ -256,15 +261,13 @@ class Starship:
         self.cargo = []
 
     def offload_to_settlement(self):
-        remaining_pops = []
         for pop in self.cargo:
             for settlement in self.destination_inhabited_planet.settlements:
                 if settlement.government.suitable_for(pop):
                     settlement.pops.append(pop)
+                    pop.happiness = 1
                     break
             else:
-                remaining_pops.append(pop)
-        if remaining_pops:
-            self.destination_inhabited_planet.settlements.append(
-                Settlement.for_pops(self.rng, remaining_pops))
+                pop.happiness = 0.75
+                self.rng.choice(self.destination_inhabited_planet.settlements).pops.append(pop)
         self.reset()

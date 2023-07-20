@@ -22,7 +22,17 @@ class Government:
         pass
 
     def govern(self, settlement: "Settlement", year: int) -> Optional["Government"]:
-        pass
+        for pop in settlement.pops:
+            gov_happiness_delta = (1 - pop.tolerance) / 10
+            if not self.suitable_for(pop):
+                pop.happiness -= gov_happiness_delta
+            else:
+                pop.happiness += gov_happiness_delta
+            if isinstance(self, pop.preferred_government):
+                pop.happiness += gov_happiness_delta / 2
+            else:
+                pop.happiness -= gov_happiness_delta / 2
+        return None
 
     @staticmethod
     def council_size(settlement: "Settlement"):
@@ -133,7 +143,14 @@ class Dictatorship(Government):
             print(
                 f"The dictator of {settlement.name} has died. A new {self.philosophy} dictator has taken control"
             )
-        return is_population_going_to_overthrow_government(self, settlement)
+            overthrow = is_population_going_to_overthrow_government(self, settlement)
+            if overthrow is None:
+                for pop in settlement.pops:
+                    pop.happiness += 0.3
+        else:
+            overthrow = is_population_going_to_overthrow_government(self, settlement)
+        super(Dictatorship, self).govern(settlement, year)
+        return overthrow
 
 
 class HereditaryDictatorship(Dictatorship):
@@ -226,6 +243,7 @@ class Autocracy(Government):
             print(
                 f"The government of {settlement.name} has shifted away from {old_philosophy} towards {self.philosophy}"
             )
+        super(Autocracy, self).govern(settlement, year)
         return is_population_going_to_overthrow_government(self, settlement)
 
 
@@ -284,6 +302,7 @@ class RepresentativeDemocracy(Government):
                 print(
                     f"{settlement.name} has voted out its {old_philosophy} government and elected a new {self.philosophy} party"
                 )
+        super(RepresentativeDemocracy, self).govern(settlement, year)
 
         return is_government_going_to_become_autocracy(self, settlement)
 
@@ -354,6 +373,12 @@ class RepresentativeDemocracy(Government):
 
         self.infer_opinions()
 
+        for pop in settlement.pops:
+            if self.suitable_for(pop):
+                pop.happiness += 0.5
+            else:
+                pop.happiness += 0.2
+
 
 class RepresentativeCoalition(RepresentativeDemocracy):
     name = "representative coalition"
@@ -376,6 +401,7 @@ class DirectDemocracy(Government):
             print(
                 f"{settlement.name}'s {self.name} has shifted from {old_philosophy} towards {self.philosophy}"
             )
+        super(DirectDemocracy, self).govern(settlement, year)
         return is_government_going_to_become_autocracy(self, settlement)
 
     def infer_opinions(self, settlement: "Settlement"):
@@ -429,7 +455,7 @@ def is_population_going_to_overthrow_government(
     loyal_pops = []
     rebel_pops = []
     for pop in settlement.pops:
-        suitable_for = government.suitable_for(pop)
+        suitable_for = government.suitable_for(pop) and pop.happiness < 0.1
         if not suitable_for and pop.political_engagement > 0.75:
             unhappy_pops.append(pop)
             if pop.pacifist_militaristic >= 0.75:
@@ -475,7 +501,7 @@ def is_government_going_to_become_autocracy(
     rebel_pops = []
     for pop in settlement.pops:
         suitable_for = government.suitable_for(pop)
-        if not suitable_for and pop.political_engagement > 0.75:
+        if not suitable_for and (pop.political_engagement > 0.75 or pop.happiness < 0.1):
             unhappy_pops.append(pop)
             if pop.pacifist_militaristic >= 0.75 and pop.autocratic_democratic < 0.25:
                 rebel_pops.append(pop)

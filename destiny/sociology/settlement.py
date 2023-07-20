@@ -63,25 +63,45 @@ class Settlement:
         new_government = self.government.govern(self, year)
         if new_government:
             self.government = new_government
+            for pop in self.pops:
+                pop.happiness += 0.5
 
         agricultural_requirement = round(self.population / POP_TARGET_SIZE / 3)
 
         pops_to_move = []
         pops_to_stay = []
+        average_stay_happiness = 0
+        average_move_happiness = 0
         for pop in self.pops:
-            # TODO: incorporate government suitability into happiness
-            if not self.government.suitable_for(pop) and pop.wants_to_move():
+            if pop.wants_to_move():
                 pops_to_move.append(pop)
+                average_move_happiness += pop.happiness
             else:
                 pops_to_stay.append(pop)
+                average_stay_happiness += pop.happiness
 
         if not pops_to_stay:
             remainer = self.rng.choice(pops_to_move)
             pops_to_move.remove(remainer)
             pops_to_stay.append(remainer)
 
+        if pops_to_move:
+            average_move_happiness /= len(pops_to_move)
+        average_stay_happiness /= len(pops_to_stay)
+        print(
+            f"{self.name}: {len(self.pops)} pops, average happiness {average_stay_happiness}/{average_move_happiness}")
+
+        effort = len(pops_to_stay) + (len(pops_to_move) // 4)
+
+        if effort < agricultural_requirement:
+            print(f"{self.name} cannot grow enough food! Their population has starved!")
+            for pop in self.pops:
+                pop.starve()
+            effort = 0
+        else:
+            effort -= agricultural_requirement
+
         self.pops = pops_to_stay
-        effort = len(self.pops) + (len(pops_to_move) // 2) - agricultural_requirement
 
         if effort > 0:
             science_output = round(

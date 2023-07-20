@@ -27,7 +27,8 @@ class Population:
     generation: int
     ancestry: List[Tuple[str, int]]
     children: List[int]
-    happiness: float
+    _happiness: float
+    preferred_population_size: int
     mergeable: bool
 
     # statistics from 0-1
@@ -71,6 +72,14 @@ class Population:
                 else:
                     return Autocracy
 
+    @property
+    def happiness(self):
+        return self._happiness
+
+    @happiness.setter
+    def happiness(self, value: float):
+        self._happiness = max(0.0, min(1.0, value))
+
     def __init__(
         self,
         rng: Random,
@@ -81,8 +90,9 @@ class Population:
         self.rng = rng
         self.uuid = uuid4()
         self.generation = 0
-        self.happiness = 1.0
+        self._happiness = 1.0
         self.mergeable = True
+        self.preferred_population_size = self.rng.randint(10, 1_000)
 
         self.starting_population = population
         self.average_age = 20
@@ -237,6 +247,7 @@ class Population:
                 + self.rng.uniform(-deviation, deviation),
             ),
         )
+        self.preferred_population_size = min(max((round(sum(p.preferred_population_size for p in pops)/len(pops))) + self.rng.randint(-1000, 1000), 10), 1000)
 
     @classmethod
     def merge_small_pops(cls, pops: List["Population"]) -> List["Population"]:
@@ -339,7 +350,9 @@ class Population:
         return self.uuid == other.uuid
 
     def wants_to_move(self) -> bool:
-        return self.rng.random() > self.stationary_migrant - (1 - self.happiness)
+        if not self.mergeable:
+            return False
+        return self.rng.random() - self.happiness > self.stationary_migrant
 
     @property
     def is_dead(self):
@@ -353,3 +366,8 @@ class Population:
             + abs(self.secular_religious - pop.secular_religious)
             + abs(self.traditionalist_technological - pop.traditionalist_technological)
         ) / 5
+
+    def starve(self):
+        self.happiness -= 0.25
+        if self.happiness == 0:
+            self.starting_population *= 0.9

@@ -71,16 +71,12 @@ def load_stellar_catalogue() -> List[Star]:
             continue
 
         star = Star(name, pos, spectral_class, spectral_subclass, colour, luminosity)
-        print(
-            f"{name}, {spectral_class}{spectral_subclass}{' (habitable' if star.habitable else ''}, {pos}"
-        )
         stars.append(star)
 
     habitable_stars = [s for s in stars if s.habitable]
     print(f"Precomputing distances between {len(habitable_stars)} habitable stars")
     star_distance_cache = {}
     for star in habitable_stars:
-        print(f"Calculating {star.name}")
         star.precomputed_neighbours = compute_neighbours(
             star_distance_cache, habitable_stars, star
         )
