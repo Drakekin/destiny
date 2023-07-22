@@ -222,14 +222,20 @@ class Starship:
 
         return ship, cost
 
-    def offload(self) -> Optional["InhabitedPlanet"]:
+    def offload(self, year: int) -> Optional["InhabitedPlanet"]:
+        new_planet = None
         if self.destination_inhabited_planet is None and self.destination.inhabited:
             self.destination_inhabited_planet = self.destination.inhabited
         if self.destination_inhabited_planet:
             self.offload_to_settlement()
-            return None
         else:
-            return self.settle_planet()
+            new_planet = self.settle_planet()
+        if self.founded + self.lifespan > year:
+            self.destination.ships += self
+        else:
+            print(f"{self.name} has reached the end of its service life")
+        self.reset()
+        return new_planet
 
     def settle_planet(self) -> "InhabitedPlanet":
         InhabitedPlanetConstructor: Type[InhabitedPlanet] = type(self.origin)
@@ -251,8 +257,6 @@ class Starship:
             pop.happiness = 1
         settlement = Settlement.for_pops(self.rng, self.cargo, name)
         planet.settlements.append(settlement)
-        planet.planet.ships.append(self)
-        self.reset()
         return planet
 
     def reset(self):
@@ -270,4 +274,3 @@ class Starship:
             else:
                 pop.happiness = 0.75
                 self.rng.choice(self.destination_inhabited_planet.settlements).pops.append(pop)
-        self.reset()

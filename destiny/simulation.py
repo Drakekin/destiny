@@ -25,7 +25,7 @@ def simulate(years: int = 100):
         ships_in_flight = ships_still_in_flight
 
         for ship in ships_arrived:
-            maybe_new_planet = ship.offload()
+            maybe_new_planet = ship.offload(n)
             if maybe_new_planet:
                 inhabited_planets.append(maybe_new_planet)
 

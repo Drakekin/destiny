@@ -88,8 +88,6 @@ class Settlement:
         if pops_to_move:
             average_move_happiness /= len(pops_to_move)
         average_stay_happiness /= len(pops_to_stay)
-        print(
-            f"{self.name}: {len(self.pops)} pops, average happiness {average_stay_happiness}/{average_move_happiness}")
 
         effort = len(pops_to_stay) + (len(pops_to_move) // 4)
 
