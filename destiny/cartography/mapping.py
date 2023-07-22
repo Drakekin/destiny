@@ -1,9 +1,12 @@
 import json
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Iterable
 
 from destiny.cartography.planet import Planet, LifeLevel
 from destiny.cartography.star import Star
 from destiny.maths import Vec3
+
+import numpy as np
+from scipy.spatial import Delaunay
 
 
 def generate_sol():
@@ -74,14 +77,58 @@ def load_stellar_catalogue() -> List[Star]:
         stars.append(star)
 
     habitable_stars = [s for s in stars if s.habitable]
-    print(f"Precomputing distances between {len(habitable_stars)} habitable stars")
+
+    print(f"Calculating neighbours for {len(habitable_stars)} habitable stars")
+    points_for_scipy = np.array([s.position.to_list() for s in habitable_stars])
+    tris = Delaunay(points_for_scipy, qhull_options="Qbb Qc Qz Q12 QJ")
+
     star_distance_cache = {}
-    for star in habitable_stars:
-        star.precomputed_neighbours = compute_neighbours(
-            star_distance_cache, habitable_stars, star
-        )
+
+    print(f"Precomputing distances between {len(habitable_stars)} habitable stars")
+    for n, star in enumerate(habitable_stars):
+        neighbour_indexes = find_delaunay_neighbors(n, tris)
+        for index in neighbour_indexes:
+            if index == len(habitable_stars):
+                continue  # where index 1094 is coming from, I don't know
+            key = frozenset((n, index))
+            other = habitable_stars[index]
+            if key in star_distance_cache:
+                distance = star_distance_cache[key]
+            else:
+                distance = other.position.distance(star.position)
+                star_distance_cache[key] = distance
+
+            star.precomputed_neighbours.append((other, distance))
+        star.precomputed_neighbours = sorted(star.precomputed_neighbours, key=lambda t: t[1])
+
+    # for star in habitable_stars:
+    #     star.precomputed_neighbours = compute_neighbours(
+    #         star_distance_cache, habitable_stars, star
+    #     )
 
     return stars
+
+
+def find_delaunay_neighbors(pindex, triang):
+    neighbors = list()
+    for simplex in triang.simplices:
+        if pindex in simplex:
+            neighbors.extend([simplex[i] for i in range(len(simplex)) if simplex[i] != pindex])
+            '''
+            this is a one liner for if a simplex contains the point we`re interested in,
+            extend the neighbors list by appending all the *other* point indices in the simplex
+            '''
+    #now we just have to strip out all the dulicate indices and return the neighbors list:
+    return list(set(neighbors))
+
+def store_neighbours(star: Star, stars: List[Star], neighbour_indexes: Iterable[int]):
+    neighbours = []
+    for index in neighbour_indexes:
+        if index == -1:
+            continue
+        other = stars[index]
+        neighbours.append((other, other.position.distance(star.position)))
+    star.precomputed_neighbours = sorted(neighbours, key=lambda tuple_: tuple_[1])
 
 
 def compute_neighbours(

@@ -22,13 +22,21 @@ def generate_earth_pops(
         print(f"Loading {country}")
         pops = []
         adjusted_population = population * population_multiplier
-        for _ in range(int(adjusted_population // POP_TARGET_SIZE)):
+        num_pops = int(adjusted_population // POP_TARGET_SIZE)
+        for n in range(num_pops):
+            band = n / num_pops
             population = Population(
                 rng,
                 POP_TARGET_SIZE,
                 [(country, 100)],
                 randomise_statistics=True,
             )
+            if band < 0.242:
+                population.average_age = rng.randint(20, 24)
+            elif band < 0.885:
+                population.average_age = rng.randint(25, 65)
+            else:
+                population.average_age = rng.randint(66, 90)
             population.children = [
                 rng.randint(
                     int(50 / 10_000 * POP_TARGET_SIZE),

@@ -276,6 +276,8 @@ class Population:
                 sum(p.starting_population for p in mergeable),
                 [(candidate.ancestry[0][0], 100)],
             )
+            if merged_pop.population == 0:
+                continue
             merged_pop.average_age = (
                 sum(p.starting_population * p.average_age for p in mergeable)
                 / merged_pop.population

@@ -14,6 +14,9 @@ class Vec3:
     def __hash__(self):
         return (self.x, self.y, self.z).__hash__()
 
+    def to_list(self):
+        return [self.x, self.y, self.z]
+
     def distance(self, other: "Vec3"):
         return math.sqrt(
             ((self.x - other.x) ** 2)
