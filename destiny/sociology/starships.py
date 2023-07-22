@@ -29,7 +29,7 @@ class Starship:
 
     capacity: int
     science_level: int
-    discoveries: List["Technology"]
+    discoveries: List["ScienceNode"]
     name: str
     founded: int
     lifespan: int
