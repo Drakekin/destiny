@@ -49,17 +49,17 @@ class Settlement:
     def population(self):
         return sum(p.population for p in self.pops)
 
-    def births_and_deaths(self):
-        self.pops = process_births_and_deaths(self.pops, self.rng)
+    def births_and_deaths(self, birth_rate_modifier: float):
+        self.pops = process_births_and_deaths(self.pops, self.rng, birth_rate_modifier)
 
     def process_year(
-        self, year: int
+        self, year: int, birth_rate_modifier: float
     ) -> Tuple[List[Tuple["Settlement", Population]], int, int]:
         """
         :param year: the current year
         :return: A list of unhappy pops, units of manufacturing, units of science
         """
-        self.births_and_deaths()
+        self.births_and_deaths(birth_rate_modifier)
         new_government = self.government.govern(self, year)
         if new_government:
             self.government = new_government

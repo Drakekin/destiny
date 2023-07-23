@@ -231,7 +231,7 @@ class Starship:
         else:
             new_planet = self.settle_planet()
         if self.founded + self.lifespan > year:
-            self.destination.ships += self
+            self.destination.ships.append(self)
         else:
             print(f"{self.name} has reached the end of its service life")
         self.reset()

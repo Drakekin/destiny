@@ -99,6 +99,8 @@ class InhabitedPlanet:
     def process_year(self, year: int) -> List[Starship]:
         print(f"Processing year {year+1} for {self.name} - Population: {self.population:,} in {sum(len(s.pops) for s in self.settlements)} pops across {len(self.settlements)} states")
 
+        population_birth_rate_modifier = 1/max(self.population / 7_000_000_000, 1)
+
         unhappy_pops = []
         settlements_by_government = defaultdict(list)
         for settlement in self.settlements:
@@ -106,7 +108,7 @@ class InhabitedPlanet:
                 new_unhappy_pops,
                 manufacturing_output,
                 science_output,
-            ) = settlement.process_year(year)
+            ) = settlement.process_year(year, population_birth_rate_modifier)
             unhappy_pops += new_unhappy_pops
             self.science_surplus += science_output
             self.science_upgrade()
@@ -137,7 +139,6 @@ class InhabitedPlanet:
             destination, = self.rng.choices(candidates, weights=candidate_weightings)
             ship.travel_to(self, inhabited=destination)
             print(f"The {ship.name} is returning to {destination.name} on a journey taking {ship.objective_time_remaining} years")
-
 
         return leaving_ships
 

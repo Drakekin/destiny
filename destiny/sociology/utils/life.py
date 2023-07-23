@@ -2,9 +2,9 @@ from destiny.sociology.constants import POP_TARGET_SIZE
 from destiny.sociology.pop import Population
 
 
-def process_births_and_deaths(pops, rng):
+def process_births_and_deaths(pops, rng, birth_rate_modifier=1):
     for n, pop in enumerate(pops):
-        pop.births_and_deaths(rng.randint(10, 80), rng.randint(1, 10))
+        pop.births_and_deaths(rng.randint(10, 80)*birth_rate_modifier, rng.randint(1, 10))
     pops_with_descendents = [p for p in pops if p.descendents > 0]
     pops_with_descendents = rng.sample(
         pops_with_descendents, len(pops_with_descendents)
