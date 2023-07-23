@@ -255,6 +255,7 @@ class Starship:
         planet.discoveries = list(self.discoveries)
         for pop in self.cargo:
             pop.happiness = 1
+            pop.reset_wonderlust()
         settlement = Settlement.for_pops(self.rng, self.cargo, name)
         planet.settlements.append(settlement)
         return planet
@@ -274,3 +275,4 @@ class Starship:
             else:
                 pop.happiness = 0.75
                 self.rng.choice(self.destination_inhabited_planet.settlements).pops.append(pop)
+            pop.reset_wonderlust()

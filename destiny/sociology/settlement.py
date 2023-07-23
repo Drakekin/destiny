@@ -53,8 +53,8 @@ class Settlement:
         self.pops = process_births_and_deaths(self.pops, self.rng, birth_rate_modifier)
 
     def process_year(
-        self, year: int, birth_rate_modifier: float
-    ) -> Tuple[List[Tuple["Settlement", Population]], int, int]:
+        self, year: int, birth_rate_modifier: float, is_earth: bool
+    ) -> Tuple[List[Tuple["Settlement", Population]], int, int, float]:
         """
         :param year: the current year
         :return: A list of unhappy pops, units of manufacturing, units of science
@@ -65,6 +65,13 @@ class Settlement:
             self.government = new_government
             for pop in self.pops:
                 pop.happiness += 0.5
+
+        for pop in self.pops:
+            if is_earth:
+                pop.happiness -= 0.1
+            pop.add_wonderlust()
+
+        average_happiness = sum(p.happiness for p in self.pops) / len(self.pops)
 
         agricultural_requirement = round(self.population / POP_TARGET_SIZE / 3)
 
@@ -110,4 +117,4 @@ class Settlement:
             science_output = 0
             manufacturing_output = 0
 
-        return [(self, p) for p in pops_to_move], manufacturing_output, science_output
+        return [(self, p) for p in pops_to_move], manufacturing_output, science_output, average_happiness

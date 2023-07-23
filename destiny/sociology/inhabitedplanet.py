@@ -53,6 +53,7 @@ class InhabitedPlanet:
         return self.uuid.__hash__()
 
     def science_upgrade(self):
+        # TODO: Fix science so Earth doesn't massively race ahead and so that FTL isn't invented on year two
         surplus_needed = (self.science_level * 10) ** 3
         if self.science_surplus >= surplus_needed:
             self.science_surplus -= surplus_needed
@@ -108,9 +109,10 @@ class InhabitedPlanet:
                 new_unhappy_pops,
                 manufacturing_output,
                 science_output,
-            ) = settlement.process_year(year, population_birth_rate_modifier)
+                average_happiness
+            ) = settlement.process_year(year, population_birth_rate_modifier, self.is_earth)
             unhappy_pops += new_unhappy_pops
-            self.science_surplus += science_output
+            self.science_surplus += science_output * average_happiness
             self.science_upgrade()
 
             self.manufacturing_surplus += self.manufacturing_base * manufacturing_output
@@ -138,7 +140,6 @@ class InhabitedPlanet:
                 continue
             destination, = self.rng.choices(candidates, weights=candidate_weightings)
             ship.travel_to(self, inhabited=destination)
-            print(f"The {ship.name} is returning to {destination.name} on a journey taking {ship.objective_time_remaining} years")
 
         return leaving_ships
 
@@ -222,9 +223,6 @@ class InhabitedPlanet:
                         emigrated += 1
                     leaving_ships.append(ship)
                     ship.travel_to(self, cargo, planet=target_planet)
-                    print(
-                        f"The {ship.name} is heading to {target_planet.star.name} with {len(cargo)} colonists on a journey taking {ship.objective_time_remaining} years"
-                    )
 
         if colonists:
             offworld_settlers += colonists
@@ -291,9 +289,6 @@ class InhabitedPlanet:
 
                 leaving_ships.append(ship)
                 ship.travel_to(self, cargo, inhabited=target_inhabited_planet)
-                print(
-                    f"The {ship.name} is heading to {target_inhabited_planet.name} with {len(cargo)} colonists on a journey taking {ship.objective_time_remaining} years"
-                )
 
                 if len(settlers_for_planet[target_inhabited_planet]) > 0:
                     settleable_planets.append((distance, target_inhabited_planet))

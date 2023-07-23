@@ -41,6 +41,10 @@ class Population:
     traditionalist_technological: float
     tolerance: float
 
+    natural_settler_colonial: float
+    natural_stationary_migrant: float
+    natural_tolerance: float
+
     descendent_pops: List["Population"]
 
     @property
@@ -113,6 +117,10 @@ class Population:
             self.settler_colonial = self.rng.random()
             self.traditionalist_technological = self.rng.random()
             self.tolerance = self.rng.random()
+
+            self.natural_settler_colonial = self.settler_colonial
+            self.natural_stationary_migrant = self.stationary_migrant
+            self.natural_tolerance = self.tolerance
 
     def births_and_deaths(
         self, birth_rate_per_thousand: int, accidental_death_rate_per_thousand: int
@@ -249,6 +257,10 @@ class Population:
         )
         self.preferred_population_size = min(max((round(sum(p.preferred_population_size for p in pops)/len(pops))) + self.rng.randint(-1000, 1000), 10), 1000)
 
+        self.natural_settler_colonial = self.settler_colonial
+        self.natural_stationary_migrant = self.stationary_migrant
+        self.natural_tolerance = self.tolerance
+
     @classmethod
     def merge_small_pops(cls, pops: List["Population"]) -> List["Population"]:
         new_pops = []
@@ -373,3 +385,16 @@ class Population:
         self.happiness -= 0.25
         if self.happiness == 0:
             self.starting_population *= 0.9
+
+    def add_wonderlust(self):
+        if self.happiness < 0.25:
+            self.tolerance = min(1.0, self.tolerance + 0.05)
+        if self.happiness < 0.1:
+            self.stationary_migrant = min(1.0, self.stationary_migrant + 0.05)
+            if self.stationary_migrant > 0.8:
+                self.settler_colonial = min(1.0, self.settler_colonial + 0.05)
+
+    def reset_wonderlust(self):
+        self.stationary_migrant = self.natural_stationary_migrant
+        self.settler_colonial = self.natural_settler_colonial
+        self.tolerance = self.natural_tolerance

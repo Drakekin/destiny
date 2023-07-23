@@ -6,7 +6,7 @@ from destiny.sociology.starships import Starship
 from destiny.sociology.utils.loading import generate_earth_pops
 
 
-def simulate(years: int = 100):
+def simulate(years: int = 250):
     rng = Random()
     starmap = load_stellar_catalogue()
     sol = starmap[0]
