@@ -20,6 +20,7 @@ class InhabitedPlanet:
     science_surplus: int
     manufacturing_base: int
     manufacturing_surplus: int
+    founding_year: int
     planet: Planet
     name: str
     discoveries: List[ScienceNode]
@@ -28,12 +29,13 @@ class InhabitedPlanet:
 
     uuid: UUID
 
-    def __init__(self, rng: Random, planet: Planet, name: str):
+    def __init__(self, rng: Random, planet: Planet, name: str, founding_year: int):
         self.settlements = []
         self.rng = rng
         self.planet = planet
         self.planet.inhabited = self
         self.name = name
+        self.founding_year = founding_year
 
         self.uuid = uuid4()
 
@@ -98,7 +100,12 @@ class InhabitedPlanet:
         return sum([s.population for s in self.settlements])
 
     def process_year(self, year: int) -> List[Starship]:
-        print(f"Processing year {year+1} for {self.name} - Population: {self.population:,} in {sum(len(s.pops) for s in self.settlements)} pops across {len(self.settlements)} states")
+        planet_year = year - self.founding_year
+        if planet_year == year:
+            print(f"Processing year {year+1} for {self.name}")
+        else:
+            print(f"Processing year {year+1} (MY {planet_year+1}) for {self.name}")
+        print(f"Population: {self.population:,} in {sum(len(s.pops) for s in self.settlements)} pops across {len(self.settlements)} states")
 
         population_birth_rate_modifier = 1/max(self.population / 7_000_000_000, 1)
 

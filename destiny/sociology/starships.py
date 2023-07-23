@@ -229,7 +229,7 @@ class Starship:
         if self.destination_inhabited_planet:
             self.offload_to_settlement()
         else:
-            new_planet = self.settle_planet()
+            new_planet = self.settle_planet(year)
         if self.founded + self.lifespan > year:
             self.destination.ships.append(self)
         else:
@@ -237,7 +237,7 @@ class Starship:
         self.reset()
         return new_planet
 
-    def settle_planet(self) -> "InhabitedPlanet":
+    def settle_planet(self, year: int) -> "InhabitedPlanet":
         InhabitedPlanetConstructor: Type[InhabitedPlanet] = type(self.origin)
 
         countries = Counter()
@@ -249,7 +249,7 @@ class Starship:
         name = get_name(origin_country, self.rng)
 
         planet = InhabitedPlanetConstructor(
-            self.rng, self.destination, name
+            self.rng, self.destination, name, year
         )
         planet.science_level = self.science_level
         planet.discoveries = list(self.discoveries)

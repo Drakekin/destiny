@@ -16,7 +16,7 @@ def generate_earth_pops(
             country, pop_str = line.split(",")
             earth_pop_countries.append((country, int(pop_str)))
 
-    planet = InhabitedPlanet(rng, earth, "Earth")
+    planet = InhabitedPlanet(rng, earth, "Earth", 0)
     print("Loading earth data")
     for country, population in earth_pop_countries:
         print(f"Loading {country}")
