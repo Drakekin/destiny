@@ -37,7 +37,7 @@ class Government:
     @staticmethod
     def council_size(settlement: "Settlement"):
         size = math.sqrt(settlement.population / POP_TARGET_SIZE / 50)
-        return math.ceil(size)
+        return max(math.ceil(size), 1)
 
     # TODO: Reduce hash size
     @property
@@ -369,7 +369,10 @@ class RepresentativeDemocracy(Government):
                 winner.mergable = False
                 self.council.append(winner)
         else:
-            self.council = settlement.rng.sample(candidates, council_size)
+            if council_size > len(candidates):
+                self.council = candidates
+            else:
+                self.council = settlement.rng.sample(candidates, council_size)
 
         self.infer_opinions()
 

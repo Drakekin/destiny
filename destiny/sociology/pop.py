@@ -173,7 +173,7 @@ class Population:
             ) / (self.descendents + new_adults)
         else:
             self.average_descendent_age = 0
-        self.descendents += new_adults
+        self.descendents += int(new_adults)
 
         self.average_age += 1
 
@@ -387,9 +387,9 @@ class Population:
             self.starting_population *= 0.9
 
     def add_wonderlust(self):
-        if self.happiness < 0.25:
+        if self.happiness < 0.5:
             self.tolerance = min(1.0, self.tolerance + 0.05)
-        if self.happiness < 0.1:
+        if self.happiness < 0.25:
             self.stationary_migrant = min(1.0, self.stationary_migrant + 0.05)
             if self.stationary_migrant > 0.8:
                 self.settler_colonial = min(1.0, self.settler_colonial + 0.05)

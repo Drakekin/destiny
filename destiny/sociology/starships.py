@@ -256,7 +256,7 @@ class Starship:
         for pop in self.cargo:
             pop.happiness = 1
             pop.reset_wonderlust()
-        settlement = Settlement.for_pops(self.rng, self.cargo, name)
+        settlement = Settlement.for_pops(self.rng, self.cargo, name, founding_year=year)
         planet.settlements.append(settlement)
         return planet
 

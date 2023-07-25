@@ -26,6 +26,7 @@ class InhabitedPlanet:
     discoveries: List[ScienceNode]
 
     is_earth: bool
+    population_by_year: List[int]
 
     uuid: UUID
 
@@ -47,6 +48,7 @@ class InhabitedPlanet:
         self.science_surplus = 0
         self.manufacturing_surplus = 0
         self.is_earth = False
+        self.population_by_year = []
 
     def __eq__(self, other):
         return self.uuid == other.uuid
@@ -128,6 +130,8 @@ class InhabitedPlanet:
                 settlement
             )
 
+        self.population_by_year.append(self.population)
+
         print(f"{len(unhappy_pops)} pops want to move")
         leaving_ships, remaining_ships = self.migrate_pops(unhappy_pops, settlements_by_government, year)
 
@@ -207,6 +211,8 @@ class InhabitedPlanet:
                 while colonists and random_ships and colonisable_planets:
                     max_ship_range = max(ship.range for ship in random_ships)
                     colonisable_planets = list(filter(lambda p: p[0] <= max_ship_range, colonisable_planets))
+                    if not colonisable_planets:
+                        break
                     planet_weighting = [(1 / d) ** 5 for d, _ in colonisable_planets]
                     choice, = self.rng.choices(colonisable_planets, weights=planet_weighting)
                     distance, target_planet = choice
@@ -331,7 +337,7 @@ class InhabitedPlanet:
                                 continue
                             returners.append((settlement, failed_instigator))
 
-                        new_settlement = Settlement.for_pops(self.rng, new_population)
+                        new_settlement = Settlement.for_pops(self.rng, new_population, founding_year=year)
                         print(
                             f"{len(new_population)} pops have formed a new state of {new_settlement.name} on {self.name}")
                         self.settlements.append(new_settlement)
